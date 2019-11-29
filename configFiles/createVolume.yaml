@@ -1,31 +1,60 @@
 ---
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: shared-pv
-  labels:
-    type: local
-    name: sharedvolume
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    path: "/tmp"
-
----
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: shared-pvc
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
-  storageClassName: ""
-  selector:
-    matchLabels:
-      name: sharedvolume
+      storage: 10Gi
+  storageClassName: nks-block-storage
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: orderer-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: nks-block-storage
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: ca-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: nks-block-storage
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: org1-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: nks-block-storage
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: org2-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: nks-block-storage

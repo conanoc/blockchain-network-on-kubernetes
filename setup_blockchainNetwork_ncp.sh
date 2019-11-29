@@ -94,8 +94,6 @@ while [ "${JOBSTATUS}" != "1/1" ]; do
     JOBSTATUS=$(kubectl get jobs |grep "copyartifacts" |awk '{print $2}')
 done
 echo "Copy artifacts job completed"
-echo "Waiting for 10 sec after copying artifacts..."
-sleep 10
 
 # Generate Network artifacts using configtx.yaml and crypto-config.yaml
 echo -e "\nGenerating the required artifacts for Blockchain network"
@@ -116,6 +114,41 @@ while [ "${JOBSTATUS}" != "1/1" ]; do
     JOBSTATUS=$(kubectl get jobs |grep utils|awk '{print $2}')
 done
 
+# Copy the generated files to each volumes
+echo -e "\nCreating Copy volumes job. It will take long time..."
+echo "Running: kubectl create -f ${KUBECONFIG_FOLDER}/copyVolumes.yaml"
+kubectl create -f ${KUBECONFIG_FOLDER}/copyVolumes.yaml
+
+pod=$(kubectl get pods --selector=job-name=copyvolumes --output=jsonpath={.items..metadata.name})
+
+podSTATUS=$(kubectl get pods --selector=job-name=copyvolumes --output=jsonpath={.items..phase})
+
+while [ "${podSTATUS}" != "Running" ]; do
+    echo "Wating for container of copyvolumes pod to run. Current status of ${pod} is ${podSTATUS}"
+    sleep 10;
+    if [ "${podSTATUS}" == "Error" ]; then
+        echo "There is an error in copyartifacts job. Please check logs."
+        exit 1
+    fi
+    podSTATUS=$(kubectl get pods --selector=job-name=copyvolumes --output=jsonpath={.items..phase})
+done
+
+echo -e "${pod} is now ${podSTATUS}"
+echo -e "\nStarting to copy shared folder to persistent volumes."
+
+rm /tmp/shared.tar
+kubectl exec $pod -c copyshared -- tar cf - /shared | cat > /tmp/shared.tar
+kubectl cp /tmp/shared.tar $pod:/shared -c copyorderer
+kubectl cp /tmp/shared.tar $pod:/shared -c copyca
+kubectl cp /tmp/shared.tar $pod:/shared -c copyorg1
+kubectl cp /tmp/shared.tar $pod:/shared -c copyorg2
+kubectl exec $pod -c copyorderer -- tar xf /shared/shared.tar -C /
+kubectl exec $pod -c copyca -- tar xf /shared/shared.tar -C /
+kubectl exec $pod -c copyorg1 -- tar xf /shared/shared.tar -C /
+kubectl exec $pod -c copyorg2 -- tar xf /shared/shared.tar -C /
+
+kubectl delete -f ${KUBECONFIG_FOLDER}/copyVolumes.yaml
+echo "Copy artifacts job completed"
 
 # Create services for all peers, ca, orderer
 echo -e "\nCreating Services for blockchain network"
@@ -135,7 +168,7 @@ NUMPENDING=$(kubectl get deployments | grep blockchain | awk '{print $5}' | grep
 while [ "${NUMPENDING}" != "0" ]; do
     echo "Waiting on pending deployments. Deployments pending = ${NUMPENDING}"
     NUMPENDING=$(kubectl get deployments | grep blockchain | awk '{print $5}' | grep 0 | wc -l | awk '{print $1}')
-    sleep 1
+    sleep 5
 done
 
 echo "Waiting for 15 seconds for peers and orderer to settle"
@@ -205,10 +238,6 @@ while [ "${JOBSTATUS}" != "1/1" ]; do
 done
 echo "Chaincode Install Completed Successfully"
 
-#temporary
-# echo -e "\nSkip chaincodeinstantiate for now. Try instantiate chaincode yourself."
-# echo -e "Run this:\nkubectl exec -it" $(kubectl get pods | grep org1peer1 | awk '{print $1}') "-- /bin/bash"
-# exit 0
 
 # Instantiate chaincode on channel
 echo -e "\nCreating chaincodeinstantiate job"

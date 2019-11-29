@@ -13,7 +13,7 @@ spec:
       volumes:
       - name: sharedvolume
         persistentVolumeClaim:
-          claimName: shared-pvc
+          claimName: orderer-pvc
 
       containers:
       - name: orderer
@@ -73,7 +73,7 @@ spec:
       volumes:
       - name: sharedvolume
         persistentVolumeClaim:
-          claimName: shared-pvc
+          claimName: ca-pvc
 
       containers:
       - name: ca
@@ -115,7 +115,7 @@ spec:
       volumes:
       - name: sharedvolume
         persistentVolumeClaim:
-          claimName: shared-pvc
+          claimName: org1-pvc
       - name: dockersocket
         hostPath:
           path: /var/run/docker.sock
@@ -148,7 +148,7 @@ spec:
         - name: CORE_PEER_PROFILE_ENABLED
           value: "true"
         - name: CORE_VM_ENDPOINT
-          value: tcp://docker:2375
+          value: unix:///host/var/run/docker.sock
         - name: CORE_PEER_LOCALMSPID
           value: Org1MSP
         - name: CORE_PEER_MSPCONFIGPATH
@@ -201,7 +201,7 @@ spec:
       volumes:
       - name: sharedvolume
         persistentVolumeClaim:
-          claimName: shared-pvc
+          claimName: org2-pvc
       - name: dockersocket
         hostPath:
           path: /var/run/docker.sock
@@ -234,7 +234,7 @@ spec:
         - name: CORE_PEER_PROFILE_ENABLED
           value: "true"
         - name: CORE_VM_ENDPOINT
-          value: tcp://docker:2375
+          value: unix:///host/var/run/docker.sock
         - name: CORE_PEER_LOCALMSPID
           value: Org2MSP
         - name: CORE_PEER_MSPCONFIGPATH
