@@ -138,17 +138,22 @@ echo -e "\nStarting to copy shared folder to persistent volumes."
 
 rm /tmp/shared.tar
 kubectl exec $pod -c copyshared -- tar cf - /shared | cat > /tmp/shared.tar
+tar xf /tmp/shared.tar -C /tmp/
 kubectl cp /tmp/shared.tar $pod:/shared -c copyorderer
 kubectl cp /tmp/shared.tar $pod:/shared -c copyca
 kubectl cp /tmp/shared.tar $pod:/shared -c copyorg1
 kubectl cp /tmp/shared.tar $pod:/shared -c copyorg2
-kubectl exec $pod -c copyorderer -- tar xf /shared/shared.tar -C /
+kubectl exec $pod -c copyorderer -- sh -c "rm -rf /shared/ledger/orderer/* && tar xf /shared/shared.tar -C /"
 kubectl exec $pod -c copyca -- tar xf /shared/shared.tar -C /
-kubectl exec $pod -c copyorg1 -- tar xf /shared/shared.tar -C /
-kubectl exec $pod -c copyorg2 -- tar xf /shared/shared.tar -C /
+kubectl exec $pod -c copyorg1 -- sh -c "rm -rf /shared/production/* && tar xf /shared/shared.tar -C /"
+kubectl exec $pod -c copyorg2 -- sh -c "rm -rf /shared/production/* && tar xf /shared/shared.tar -C /"
+if [ $? != 0 ]; then
+    echo "Copy volumes failed."
+    exit 1
+fi
 
 kubectl delete -f ${KUBECONFIG_FOLDER}/copyVolumes.yaml
-echo "Copy artifacts job completed"
+echo "Copy volumes job completed"
 
 # Create services for all peers, ca, orderer
 echo -e "\nCreating Services for blockchain network"
@@ -171,6 +176,7 @@ while [ "${NUMPENDING}" != "0" ]; do
     sleep 5
 done
 
+echo "Done"
 echo "Waiting for 15 seconds for peers and orderer to settle"
 sleep 15
 

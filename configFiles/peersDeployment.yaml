@@ -186,6 +186,9 @@ spec:
           name: sharedvolume
         - mountPath: /host/var/run/docker.sock
           name: dockersocket
+        - mountPath: /var/hyperledger/production
+          name: sharedvolume
+          subPath: production
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -272,3 +275,6 @@ spec:
           name: sharedvolume
         - mountPath: /host/var/run/docker.sock
           name: dockersocket
+        - mountPath: /var/hyperledger/production
+          name: sharedvolume
+          subPath: production
